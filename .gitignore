@@ -2,3 +2,5 @@
 *test*/
 *.pdf
 *.zip
+data/
+__pycache__/
