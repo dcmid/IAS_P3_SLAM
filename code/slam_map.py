@@ -51,11 +51,10 @@ class SLAMMap:
         occ_coords = np.zeros((len(self.bots), 2), dtype=np.int16)
         poses = np.array([bot.pose for bot in self.bots])
         occ_coords = slam_utils.get_occupied_coords(poses, lidar).astype(np.int16)  # coords detected occupied
-        print(occ_coords.shape)
 
         self.update_weights(occ_coords)  # update weight of each bot (particle)
 
-        print(self.weights)
+        # print(self.weights)
 
         for i,bot in enumerate(self.bots):
             x = bot.pose[0].astype(np.int16)

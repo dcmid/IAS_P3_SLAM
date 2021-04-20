@@ -1,6 +1,4 @@
 import load_data
-import matplotlib
-matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 import numpy as np
 from slam_utils import get_local_movement, get_occupied_coords, map_correlation
@@ -33,7 +31,8 @@ lidar20 = load_data.get_lidar('../data/Hokuyo20')
 
 poses = np.array([bot.pose for bot in slam20.bots])
 
-slam20.sense_walls(lidar20[0])
+for i in range(100):
+    slam20.sense_walls(lidar20[0])
 
 poses[2] = [0,0,1]
 

@@ -1,4 +1,5 @@
 import numpy as np
+from scipy.special import expit
 import math
 
 def get_local_movement(R_enc_val, L_enc_val, enc_tick_len, bot_width):
@@ -97,6 +98,7 @@ def map_correlation(og_map, occ_coords, bot_poses):
     cor = np.zeros(len(bot_poses))
     xs = np.floor(occ_coords[:,:,0] + bot_poses[:,np.newaxis,0]).astype(np.int16)
     ys = np.floor(occ_coords[:,:,1] + bot_poses[:,np.newaxis,1]).astype(np.int16)
+    # print(xs[:,0])
     for i in range(xs.shape[1]):
         cor += og_map[xs[:,0], ys[:,1]]
     # for c in occ_coords:
@@ -105,7 +107,7 @@ def map_correlation(og_map, occ_coords, bot_poses):
     #     cor += og_map[xs, ys]
     #     #print(c[1] + bot_poses[:,1])
     
-    cor = np.minimum(cor, 100)  # let's avoid overflow
+    # cor = np.minimum(cor, 100)  # let's avoid overflow
     #return cor
 
-    return np.exp(cor)  # raise e^cor to convert from log likelihood
+    return expit(cor)  # convert from log likelihood using sigmoid
