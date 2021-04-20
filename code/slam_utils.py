@@ -47,7 +47,7 @@ def dead_rec_trajectory(R_enc, L_enc, enc_tick_len, bot_width):
     pose[:,2] = np.mod(pose[:,2], 2*np.pi)
     return pose
 
-def get_ray_end_coords(length,theta):
+def get_ray_end_coords(length,thetas):
     """ find gridmap coords of terminal point of ray
 
     Args:
@@ -56,14 +56,17 @@ def get_ray_end_coords(length,theta):
         theta: angle of ray
 
     Returns:
-        (x,y): coordinates of terminal point
+        end_coords: array with dims (len(thetas), 2)
+                    [[x0,y0], [x1,y1], ...]
     """
-    x = np.floor(length*np.cos(theta)).astype(np.int32)
-    y = np.floor(length*np.sin(theta)).astype(np.int32)
-    return np.asarray([x,y])
+    x = np.floor(length[np.newaxis,:]*np.cos(thetas)).astype(np.int16)
+    y = np.floor(length[np.newaxis,:]*np.sin(thetas)).astype(np.int16)
+    end_coords = np.asarray([x,y]).astype(np.int16)
+    end_coords = np.moveaxis(end_coords,0,2)  # switch from (2 nbots nlidar) to (nbots nlidar 2)
+    return end_coords
 
-def get_occupied_coords(bot_pose, lidar):
-    """ find occupied coordinates in map given bot position and lidar reading
+def get_occupied_coords(bot_poses, lidar):
+    """ find occupied coordinates in map given bot poses and lidar reading
 
     Args:
         bot_pose: current pose of bot [x, y, angle]
@@ -71,13 +74,13 @@ def get_occupied_coords(bot_pose, lidar):
 
     Returns:
         occ_coords: coordinates of terminal points of all lidar readings
-                    array([[x0,y0],[x1,y1],...])
+                    array with dimensions (nbots nlidar 2)
     """
     scan_dm = 10 * lidar['scan']  # lidar ranges in decimeters (resolution of grid)
-    theta = np.squeeze(lidar['angle']) + bot_pose[2]  # add bot angle to lidar
+    theta = (lidar['angle'] + bot_poses[:,2]).T  # add bot angle to lidar
     theta = np.mod(theta, 2*np.pi)  # reduce to minimum equivalent angle
 
-    occ_coords = (bot_pose[:2,np.newaxis] + get_ray_end_coords(scan_dm,theta)).astype(np.int32).T
+    occ_coords = (bot_poses[:,np.newaxis,:2] + get_ray_end_coords(scan_dm,theta)).astype(np.int32)
     return occ_coords
 
 def map_correlation(og_map, occ_coords, bot_poses):
@@ -92,10 +95,17 @@ def map_correlation(og_map, occ_coords, bot_poses):
         cor: correlation between the two inputs
     """
     cor = np.zeros(len(bot_poses))
-    for c in occ_coords:
-        xs = np.floor(c[0] + bot_poses[:,0]).astype(np.int16)
-        ys = np.floor(c[1] + bot_poses[:,1]).astype(np.int16)
-        cor += og_map[xs, ys]
-        #print(c[1] + bot_poses[:,1])
+    xs = np.floor(occ_coords[:,:,0] + bot_poses[:,np.newaxis,0]).astype(np.int16)
+    ys = np.floor(occ_coords[:,:,1] + bot_poses[:,np.newaxis,1]).astype(np.int16)
+    for i in range(xs.shape[1]):
+        cor += og_map[xs[:,0], ys[:,1]]
+    # for c in occ_coords:
+    #     xs = np.floor(c[0] + bot_poses[:,0]).astype(np.int16)
+    #     ys = np.floor(c[1] + bot_poses[:,1]).astype(np.int16)
+    #     cor += og_map[xs, ys]
+    #     #print(c[1] + bot_poses[:,1])
+    
+    cor = np.minimum(cor, 100)  # let's avoid overflow
+    #return cor
 
     return np.exp(cor)  # raise e^cor to convert from log likelihood

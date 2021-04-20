@@ -34,7 +34,7 @@ class SLAMMap:
 
     def move_bot(self, local_move):
         for bot in self.bots:
-            noisy_move = local_move + [np.random.normal(0,0.1,1)[0], np.random.normal(0,0.1,1)[0], 0.0]
+            noisy_move = local_move + [np.random.normal(0,0.1,1)[0], np.random.normal(0,0.1,1)[0], np.random.normal(0,0.01,1)[0]]
             bot.move(noisy_move)
         # print(self.bot.pose)
 
@@ -47,26 +47,26 @@ class SLAMMap:
 
 
     def sense_walls(self, lidar):
-        theta = self.bots[0].pose[2]
-        occ_coords = slam_utils.get_occupied_coords(np.array([0,0,theta]), lidar).astype(np.int16)  # coords detected occupied
-        empty_coords = mu.getMapCellsFromRay_fclad(0,0,  # current bot pose
-                                                   occ_coords[:,0],occ_coords[:,1],  # ray end points
-                                                   np.max(self.occ_grid_map.shape)).astype(np.int32, copy=True).T  # map max
+        # theta = self.bots[0].pose[2]
+        occ_coords = np.zeros((len(self.bots), 2), dtype=np.int16)
+        poses = np.array([bot.pose for bot in self.bots])
+        occ_coords = slam_utils.get_occupied_coords(poses, lidar).astype(np.int16)  # coords detected occupied
+        print(occ_coords.shape)
 
         self.update_weights(occ_coords)  # update weight of each bot (particle)
 
-        b_occ_coords = np.zeros(occ_coords.shape, dtype = np.int16)
-        b_empty_coords = np.zeros(empty_coords.shape, dtype = np.int16)
-        for i,bot in enumerate(self.bots):
-            pose = np.floor(bot.pose).astype(np.int16)
-            b_occ_coords[:,0] = np.floor(occ_coords[:,0] + pose[0]).astype(np.int16)
-            b_occ_coords[:,1] = np.floor(occ_coords[:,1] + pose[1]).astype(np.int16)
-            b_empty_coords[:,0] = np.floor(empty_coords[:,0] + pose[0]).astype(np.int16)
-            b_empty_coords[:,1] = np.floor(empty_coords[:,1] + pose[1]).astype(np.int16)
+        print(self.weights)
 
-            for c in b_occ_coords:
+        for i,bot in enumerate(self.bots):
+            x = bot.pose[0].astype(np.int16)
+            y = bot.pose[1].astype(np.int16)
+            empty_coords = mu.getMapCellsFromRay_fclad(bot.pose[0],bot.pose[1],  # current bot pose
+                                                       occ_coords[i,:,0],occ_coords[i,:,1],  # ray end points
+                                                       np.max(self.occ_grid_map.shape)).astype(np.int32, copy=True).T  # map max
+
+            for c in occ_coords[i]:
                 self.occ_grid_map[c[0], c[1]] += 0.1 * self.weights[i]
-            for c in b_empty_coords:
+            for c in empty_coords:
                 self.occ_grid_map[c[0], c[1]] -= 0.01 * self.weights[i]
 
     def plot(self):

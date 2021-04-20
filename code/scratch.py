@@ -1,7 +1,9 @@
 import load_data
+import matplotlib
+matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 import numpy as np
-from slam_utils import get_local_movement
+from slam_utils import get_local_movement, get_occupied_coords, map_correlation
 from slam_map import SLAMMap
 
 # CONSANTS ----------------------------------------------------------------------------------------------
@@ -29,10 +31,15 @@ local20 = get_local_movement(R_enc, L_enc,
 
 lidar20 = load_data.get_lidar('../data/Hokuyo20')
 
+poses = np.array([bot.pose for bot in slam20.bots])
+
 slam20.sense_walls(lidar20[0])
 
-for move in local20:
-    slam20.move_bot(move)
+poses[2] = [0,0,1]
 
-slam20.plot()
+oc = get_occupied_coords(poses, lidar20[0])
+
+print(map_correlation(slam20.occ_grid_map, oc, poses))
+
+plt.imshow(slam20.occ_grid_map)
 plt.show()
