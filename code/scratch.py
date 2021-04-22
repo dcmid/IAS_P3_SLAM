@@ -40,7 +40,8 @@ j = 0
 #     else:
 #         slam20.sense_walls(lidar20[j])
 #         j += 1
-while ( (i < len(local20)) and (j < len(lidar20)) ):  # loop through movement and lidar in time-sequential order
+# while ( (i < len(local20)) and (j < len(lidar20)) ):  # loop through movement and lidar in time-sequential order
+while ( (i < 1000) ):  # loop through movement and lidar in time-sequential order
     if (enc_ts[i] < lidar20[j]['t']):
         if ( i % 500 == 0):
             print('Move Num:', i)
@@ -49,14 +50,14 @@ while ( (i < len(local20)) and (j < len(lidar20)) ):  # loop through movement an
     else:
         slam20.sense_walls(lidar20[j])
         j += 1
-while (i < len(local20)):  # loop through any remaining movement
-    slam20.move_bot(local20[i])
-    i += 1
-while (j < len(lidar20)):  # loop through any remaining lidar
-    slam20.sense_walls(lidar20[j])
-    j += 1
+# while (i < len(local20)):  # loop through any remaining movement
+#     slam20.move_bot(local20[i])
+#     i += 1
+# while (j < len(lidar20)):  # loop through any remaining lidar
+#     slam20.sense_walls(lidar20[j])
+#     j += 1
 
-pk.dump(slam20, open("slam20.pickle", "wb"))
+pk.dump(slam20.get_reduced_histories(factor=200), open("slam20_traj.pickle", "wb"))
 
 print('fin')
 slam20.plot()

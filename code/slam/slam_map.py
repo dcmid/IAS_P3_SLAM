@@ -123,7 +123,24 @@ class SLAMMap:
         plt.show()
 
     def plot_step(self, n, vmin=-30, vmax=30, cmap=slam_utils.slam_cmap):
-        plt.imshow(self.ogm_history[n].T, origin='lower', cmap=cmap, vmin = vmin, vmax=30)
+        plt.imshow(self.ogm_history[n].T, origin='lower', cmap=cmap, vmin = vmin, vmax=vmax)
         for bot in self.bots:
             plt.scatter(bot.trajectory[n][0], bot.trajectory[n][1])
         plt.show()
+
+    def get_reduced_histories(self, factor):
+        r_len = len(self.bots[0].trajectory) // factor
+        r_trajectories = np.zeros(((len(self.bots), r_len , 2)))
+        for i,bot in enumerate(self.bots):
+            traj = np.asarray(bot.trajectory)[0::factor,0:2]
+            r_trajectories[i,:,:] = traj[0:r_len]
+        
+        ogm_hist = np.asarray(self.ogm_history)
+        r_map_hist = ogm_hist[0::factor][0:r_len]
+
+        reduced_histories = {
+            'bot_traj' : r_trajectories,
+            'ogm_hist' : ogm_hist,
+        }
+
+        return reduced_histories
