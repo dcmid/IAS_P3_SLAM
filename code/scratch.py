@@ -1,8 +1,11 @@
-import load_data
+import slam.load_data as load_data
 import matplotlib.pyplot as plt
 import numpy as np
-from slam_utils import get_local_movement, get_occupied_coords, map_correlation
-from slam_map import SLAMMap
+from slam.slam_utils import get_local_movement, get_occupied_coords, map_correlation
+from slam.slam_map import SLAMMap
+import pickle as pk
+
+# np.random.seed(0xdeadbeef)
 
 # CONSANTS ----------------------------------------------------------------------------------------------
 WHEEL_DIAM = 254/100    # wheel diameter (dm)
@@ -14,7 +17,7 @@ ENC_TICK_LEN = WHEEL_CIRC / 360  # length of one encoder tick (mm)
 
 # SLAM --------------------------------------------------------------------------------------------------
 
-slam20 = SLAMMap(map_shape=(800,800), num_particles=10)  # create new map with bot in it
+slam20 = SLAMMap(map_shape=(800,800), num_particles=30, xy_var=0.3, theta_var=0.001)  # create new map with bot in it
 
 # Front Right, Front Left,... encoder readings, time
 FR_enc, FL_enc, RR_enc, RL_enc, enc_ts = load_data.get_encoder('../data/Encoders20')
@@ -29,16 +32,40 @@ local20 = get_local_movement(R_enc, L_enc,
 
 lidar20 = load_data.get_lidar('../data/Hokuyo20')
 
-poses = np.array([bot.pose for bot in slam20.bots])
+i = 0
+j = 0
+# while( np.all(local20[i] == 0 )):  # don't move bot during initial rest
+#     if (enc_ts[i] < lidar20[j]['t']):
+#         i += 1
+#     else:
+#         slam20.sense_walls(lidar20[j])
+#         j += 1
+while ( (i < len(local20)) and (j < len(lidar20)) ):  # loop through movement and lidar in time-sequential order
+    if (enc_ts[i] < lidar20[j]['t']):
+        if ( i % 500 == 0):
+            print('Move Num:', i)
+        slam20.move_bot(local20[i])
+        i += 1
+    else:
+        slam20.sense_walls(lidar20[j])
+        j += 1
+while (i < len(local20)):  # loop through any remaining movement
+    slam20.move_bot(local20[i])
+    i += 1
+while (j < len(lidar20)):  # loop through any remaining lidar
+    slam20.sense_walls(lidar20[j])
+    j += 1
 
-for i in range(100):
-    slam20.sense_walls(lidar20[0])
+pk.dump(slam20, open("slam20.pickle", "wb"))
 
-poses[2] = [0,0,1]
-
-oc = get_occupied_coords(poses, lidar20[0])
-
-print(map_correlation(slam20.occ_grid_map, oc, poses))
-
-plt.imshow(slam20.occ_grid_map)
+print('fin')
+slam20.plot()
 plt.show()
+
+
+# import cProfile
+# import pstats
+# profile = cProfile.Profile()
+# profile.run('slam20.sense_walls(lidar20[j])')
+# ps = pstats.Stats(profile)
+# ps.print_stats()
