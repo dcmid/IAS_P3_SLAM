@@ -50,8 +50,12 @@ class SLAMMap:
                 bot.move(noisy_move)
         
         else:  # if bot is still, don't add noise
-            for bot in self.bots:
-                bot.move(local_move)
+            xy_noise = np.zeros((len(self.bots),2))
+            theta_noise = np.random.normal(0, 0, len(self.bots))
+            pose_noise = np.asarray([xy_noise[:,0], xy_noise[:,1], theta_noise]).T
+            for i,bot in enumerate(self.bots):
+                noisy_move = local_move + pose_noise[i]
+                bot.move(noisy_move)
 
     def update_weights(self, occ_coords):
         corrs = slam_utils.map_correlation(self.occ_grid_map, occ_coords)  # correlation for each possible bot position
@@ -94,7 +98,7 @@ class SLAMMap:
         self.update_weights(occ_coords)  # update weight of each bot (particle)
 
         # if there are too many degenerate particles (low effective # of particles), resample and reset weights
-        if ( self.eff_particles() < len(self.bots) * 0.7 ):
+        if ( self.eff_particles() < len(self.bots) * 0.5 ):
             self.resample()
             poses = np.array([bot.pose for bot in self.bots])
             occ_coords = slam_utils.get_occupied_coords(poses, lidar).astype(np.int16)  # coords detected occupied

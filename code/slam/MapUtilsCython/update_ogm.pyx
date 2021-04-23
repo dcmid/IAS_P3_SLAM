@@ -15,6 +15,6 @@ def update_ogm(np.ndarray[np.float64_t, ndim=2] occ_grid_map, np.ndarray[np.int1
     for i in range(n_oc):
         ogm[oc[i,0], oc[i,1]] += 0.2 * w
     for i in range(n_ec):
-        ogm[ec[i,0], ec[i,1]] -= 0.01 * w
+        ogm[ec[i,0], ec[i,1]] -= 0.03 * w
 
     return ogm
