@@ -103,6 +103,16 @@ class SLAMMap:
             poses = np.array([bot.pose for bot in self.bots])
             occ_coords = slam_utils.get_occupied_coords(poses, lidar).astype(np.int16)  # coords detected occupied
 
+        # max_idx = np.argmax(self.weights)
+        # empty_coords = mu.getMapCellsFromRay_fclad(self.bots[max_idx].pose[0],self.bots[max_idx].pose[1],  # current bot pose
+        #                                             occ_coords[max_idx,:,0],occ_coords[max_idx,:,1],  # ray end points
+        #                                             np.max(self.occ_grid_map.shape)).astype(np.int16, copy=True).T  # map max
+
+        # for c in occ_coords[max_idx]:
+        #     self.occ_grid_map[c[0], c[1]] += 0.1
+        # for c in empty_coords:
+        #     self.occ_grid_map[c[0], c[1]] -= 0.01
+        # self.ogm_history.append(self.occ_grid_map.copy())
         for i,bot in enumerate(self.bots):
             x = bot.pose[0].astype(np.int16)
             y = bot.pose[1].astype(np.int16)
@@ -111,7 +121,7 @@ class SLAMMap:
                                                        np.max(self.occ_grid_map.shape)).astype(np.int16, copy=True).T  # map max
 
             self.occ_grid_map = og.update_ogm(self.occ_grid_map, occ_coords[i], empty_coords, self.weights[i])
-        self.ogm_history.append(self.occ_grid_map.copy())
+            self.ogm_history.append(self.occ_grid_map.copy())
             # for c in occ_coords[i]:
             #     self.occ_grid_map[c[0], c[1]] += 0.1 * self.weights[i]
             # for c in empty_coords:
