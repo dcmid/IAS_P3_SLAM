@@ -25,10 +25,6 @@ The files in this top-level directory are:
 The slam package includes everything needed for my top-level scripts to work.
 Relevant files are listed here.
 
-- MapUtilsCython/update_ogm.pyx
-  I implemented my own Cython function for updating my occupancy grid map.
-  It substantially reduced runtime.
-
 - slam.py
   This module includes the slam() function, which can be used to perform the
   full SLAM algorithm on data at provided paths and returns the resulting
@@ -42,3 +38,7 @@ Relevant files are listed here.
   This module contains a variety of helper functions used in the other modules.
   It also contains my custom color map, slam_cmap, which is used for plotting
   the occupancy grid map.
+
+- MapUtilsCython/update_ogm.pyx
+  I implemented my own Cython function for updating my occupancy grid map.
+  It substantially reduced runtime.
