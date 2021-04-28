@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 
 class Bot:
     def __init__(self,pose=np.zeros(3),trajectory=None):
-        self.pose = pose.copy().astype(np.double)  # global pose [x, y, theta] of bot
+        self.pose = np.asarray(pose).copy().astype(np.double)  # global pose [x, y, theta] of bot
         if trajectory is None:
             self.trajectory = [self.pose.copy()]
         else:
@@ -18,8 +18,8 @@ class Bot:
         d_j = local_move[1]  # local 'y' movement
         d_theta = local_move[2]  # change in angle
         theta = self.pose[2]  # angle before move
-        d_x = (d_i * np.cos(theta)) + (d_j * np.sin(theta/2))  # global x movement
-        d_y = (d_i * np.sin(theta)) + (d_j * np.cos(theta/2))  # global y movement
+        d_x = (d_i * np.cos(theta)) + (d_j * np.sin(theta))  # global x movement
+        d_y = (d_i * np.sin(theta)) + (d_j * np.cos(theta))  # global y movement
 
         self.pose += [d_x, d_y, d_theta]
         self.trajectory.append(self.pose.copy())
@@ -29,20 +29,20 @@ class Bot:
 
 
 class SLAMMap:
-    def __init__(self, num_particles, map_shape=(1000,1000), xy_var = 0.3, theta_var = 0.001):
+    def __init__(self, num_particles, map_shape=(1000,1000), xy_std = 0.3, theta_std = 0.001):
         self.occ_grid_map = np.zeros(map_shape, dtype=np.float64)  # initialize occupancy grid map
         self.ogm_history = [self.occ_grid_map.copy()]
         self.origin = np.asarray([map_shape[0], map_shape[1], 0], dtype=np.double) // 2  # center of map
         self.bots = np.asarray([Bot(self.origin) for p in range(num_particles)])  # initialize bot in center of map with angle 0
         self.weights = np.ones(num_particles) / num_particles  # initialize all bot (particle) weights equally
 
-        self.xy_var = xy_var
-        self.theta_var = theta_var
+        self.xy_std = xy_std
+        self.theta_std = theta_std
 
     def move_bot(self, local_move):
         if(np.any(local_move > 0)):
-            xy_noise = np.random.normal(0, self.xy_var, (len(self.bots),2))
-            theta_noise = np.random.normal(0, self.theta_var, len(self.bots))
+            xy_noise = np.random.normal(0, self.xy_std, (len(self.bots),2))
+            theta_noise = np.random.normal(0, self.theta_std, len(self.bots))
             pose_noise = np.asarray([xy_noise[:,0], xy_noise[:,1], theta_noise]).T
 
             for i,bot in enumerate(self.bots):
@@ -75,12 +75,12 @@ class SLAMMap:
     
     def resample(self):
         # print(self.weights)
-        is_degen = ( self.weights < 1 / (5*len(self.weights)) )  # boolean array that is true where weights are very small
-        degenerate_idxs = np.where(is_degen)[0]  # indices of degenerate particles
-        valid_idxs = np.where(np.invert(is_degen))[0]  # indices of valid particles
-        valid_weights = self.weights[valid_idxs] / np.sum(self.weights[valid_idxs])  # normalized weights of valid particles
+        # is_degen = ( self.weights < 1 / (5*len(self.weights)) )  # boolean array that is true where weights are very small
+        # degenerate_idxs = np.where(is_degen)[0]  # indices of degenerate particles
+        # valid_idxs = np.where(np.invert(is_degen))[0]  # indices of valid particles
+        # valid_weights = self.weights[valid_idxs] / np.sum(self.weights[valid_idxs])  # normalized weights of valid particles
 
-        resampled_idxs = np.random.choice(a=valid_idxs, size=len(self.weights), replace=True, p=valid_weights)
+        resampled_idxs = np.random.choice(a=range(len(self.weights)), size=len(self.weights), replace=True, p=self.weights)
 
         self.bots = [Bot(self.bots[idx].pose, self.bots[i].trajectory) for i,idx in enumerate(resampled_idxs)]
 
@@ -98,7 +98,7 @@ class SLAMMap:
         self.update_weights(occ_coords)  # update weight of each bot (particle)
 
         # if there are too many degenerate particles (low effective # of particles), resample and reset weights
-        if ( self.eff_particles() < len(self.bots) * 0.5 ):
+        if ( self.eff_particles() < len(self.bots) * 0.75 ):
             self.resample()
             poses = np.array([bot.pose for bot in self.bots])
             occ_coords = slam_utils.get_occupied_coords(poses, lidar).astype(np.int16)  # coords detected occupied
@@ -114,14 +114,12 @@ class SLAMMap:
         #     self.occ_grid_map[c[0], c[1]] -= 0.01
         # self.ogm_history.append(self.occ_grid_map.copy())
         for i,bot in enumerate(self.bots):
-            x = bot.pose[0].astype(np.int16)
-            y = bot.pose[1].astype(np.int16)
             empty_coords = mu.getMapCellsFromRay_fclad(bot.pose[0],bot.pose[1],  # current bot pose
                                                        occ_coords[i,:,0],occ_coords[i,:,1],  # ray end points
                                                        np.max(self.occ_grid_map.shape)).astype(np.int16, copy=True).T  # map max
 
             self.occ_grid_map = og.update_ogm(self.occ_grid_map, occ_coords[i], empty_coords, self.weights[i])
-            self.ogm_history.append(self.occ_grid_map.copy())
+        self.ogm_history.append(self.occ_grid_map.copy())
             # for c in occ_coords[i]:
             #     self.occ_grid_map[c[0], c[1]] += 0.1 * self.weights[i]
             # for c in empty_coords:

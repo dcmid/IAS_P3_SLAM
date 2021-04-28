@@ -22,8 +22,8 @@ def get_local_movement(R_enc_val, L_enc_val, enc_tick_len, bot_width):
     R_mm = enc_tick_len * R_enc_val  # convert encoder to right wheel movement in mm
     L_mm = enc_tick_len * L_enc_val  # convert encoder to left wheel movement in mm
     d_theta = (R_mm - L_mm) / bot_width  # find change in angle
-    d_i = (R_mm + L_mm) / 2 * np.cos(d_theta)  # motion in i direction
-    d_j = (R_mm + L_mm) / 2 * np.sin(d_theta)  # motion in j direction
+    d_i = (R_mm + L_mm) / 2 * np.cos(d_theta/2)  # motion in i direction
+    d_j = (R_mm + L_mm) / 2 * np.sin(d_theta/2)  # motion in j direction
     return np.asarray([d_i, d_j, d_theta]).T
 
 def dead_rec_trajectory(R_enc, L_enc, enc_tick_len, bot_width):
@@ -103,10 +103,17 @@ def map_correlation(og_map, occ_coords):
     xs = occ_coords[:,:,0]
     ys = occ_coords[:,:,1]
     hits = og_map[xs,ys]
-    cor = np.sum(hits,axis=1)
+    cor[:] = np.sum(hits,axis=1)
+    #print(np.min(cor))
+    cor -= min(np.min(cor),0)
+    #print(np.min(cor))
+    if np.any(cor > 0):
+        cor /= np.sum(cor)
+    # else:
+    #     cor[:] = 1/len(cor)
     
     # for i in range(xs.shape[1]):
     #     cor += og_map[xs[:,i], ys[:,i]]
     # print(cor)
 
-    return expit(cor/100)  # convert from log likelihood using sigmoid
+    return cor  # convert from log likelihood using sigmoid
