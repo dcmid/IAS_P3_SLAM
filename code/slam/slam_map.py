@@ -4,6 +4,7 @@ import slam.MapUtilsCython.MapUtils_fclad as mu
 import slam.MapUtilsCython.update_ogm as og
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib import animation
 
 class Bot:
     def __init__(self,pose=np.zeros(3),trajectory=None):
@@ -124,3 +125,41 @@ class SLAMMap:
         for bot in self.bots:
             plt.scatter(bot.trajectory[n][0], bot.trajectory[n][1])
         plt.show()
+            
+
+    def get_reduced_histories(self, factor):
+        """ history/trajectories are huge. L """
+        r_len = len(self.bots[0].trajectory) // factor
+        r_trajectories = np.zeros(((len(self.bots), r_len , 2)))
+        for i,bot in enumerate(self.bots):
+            traj = np.asarray(bot.trajectory)[0::factor,0:2]
+            r_trajectories[i,:,:] = traj[0:r_len]
+        
+        ogm_hist = np.asarray(self.ogm_history)
+        r_map_hist = ogm_hist[0::factor][0:r_len]
+
+        reduced_histories = {
+            'bot_traj' : r_trajectories,
+            'ogm_hist' : ogm_hist,
+        }
+
+        return reduced_histories
+
+    def make_animation(self, wr_path, resolution):
+        reduced_hist = self.get_reduced_histories(resolution)
+        part_trajs = reduced_hist['bot_traj']
+        map_traj = reduced_hist['ogm_hist']
+
+        fix,ax = plt.subplots()
+        fig.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=None, hspace=None)
+
+        def animate(i):
+            ax.cla();
+            ax.imshow(self.map_traj[i].T, origin='lower', cmap=cmap, vmin = vmin, vmax=vmax);
+            for bot in self.bots:
+                ax.scatter(bot.trajectory[n][0], bot.trajectory[n][1])
+            plt.axis('off')
+
+        anim = animation.FuncAnimation(fig, animate, frames = len(sensors_scaled)-1, interval = 1, blit = False)
+        wr = animation.FFMpegWriter(fps=10)
+        anim.save(wr_path, writer=wr)

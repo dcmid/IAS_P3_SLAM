@@ -12,13 +12,14 @@ WHEEL_CIRC = np.pi*WHEEL_DIAM    # wheel circumference (dm)
 ENC_TICK_LEN = WHEEL_CIRC / 360  # length of one encoder tick (dm)
 
 
-def slam(enc_path, lidar_path, pickle_path=None, map_shape=(800,800), num_particles=30, xy_std=0.3, theta_std=0.012):
+def slam(enc_path, lidar_path, pickle_path=None, anim_path=None, map_shape=(800,800), num_particles=30, xy_std=0.3, theta_std=0.012):
     """ executes SLAM using data at provided paths. Returns SLAMMap object. 
     
     Args:
         enc_path: path to encoder data
         lidar_path: path to lidar data
         pickle_path: path to write pickled final map. If None, map isn't written anywhere.
+        anim_path: path to write animation. If None, animation isn't written anywhere.
         map_shape: shape of occupancy grid map
         num_particles: number of particles in particle filter
         xy_std: standard deviation in x and y when adding noise to particle motion
@@ -65,6 +66,9 @@ def slam(enc_path, lidar_path, pickle_path=None, map_shape=(800,800), num_partic
     if pickle_path is not None:
         print('pickling...')
         pk.dump(slmap.occ_grid_map, open(pickle_path, "wb"))
+
+    if anim_path is not None:
+        slmap.make_animation(anim_path,200)
 
     print('fin')
     return slmap
