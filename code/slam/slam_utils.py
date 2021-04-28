@@ -100,20 +100,12 @@ def map_correlation(og_map, occ_coords):
         cor: correlation between the two inputs
     """
     cor = np.zeros(len(occ_coords), dtype=np.float64)
-    xs = occ_coords[:,:,0]
-    ys = occ_coords[:,:,1]
-    hits = og_map[xs,ys]
-    cor[:] = np.sum(hits,axis=1)
-    #print(np.min(cor))
-    cor -= min(np.min(cor),0)
-    #print(np.min(cor))
+    xs = occ_coords[:,:,0]  # occupied x coords
+    ys = occ_coords[:,:,1]  # occupied y coords
+    hits = og_map[xs,ys]  # values in all occupied cells
+    cor[:] = np.sum(hits,axis=1)  # correlation = sum of hits
+    cor -= min(np.min(cor),0)  # shift so all are positive
     if np.any(cor > 0):
-        cor /= np.sum(cor)
-    # else:
-    #     cor[:] = 1/len(cor)
-    
-    # for i in range(xs.shape[1]):
-    #     cor += og_map[xs[:,i], ys[:,i]]
-    # print(cor)
+        cor /= np.sum(cor)  # normalize to sum to 1
 
-    return cor  # convert from log likelihood using sigmoid
+    return cor  
